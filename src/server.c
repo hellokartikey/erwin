@@ -9,14 +9,13 @@
 #include <netdb.h>
 #include <unistd.h>
 
-#include <sys/types.h>
-#include <sys/socket.h>
 #include <sys/stat.h>
 
 #include "da.h"
 #include "error.h"
+#include "net.h"
 
-server_t state;
+static server_t state;
 
 void scan_pages() {
   DIR* fd = opendir(".");
@@ -49,69 +48,27 @@ void handle_SIGINT(int signal) {
   exit(0);
 }
 
-void init_state() {
+void setup_state() {
   state.pages = NULL;
   state.routes = NULL;
-  state.fd = -1;
 
   signal(SIGINT, &handle_SIGINT);
+
+  scan_pages();
+
+  setup_net(PORT);
 }
 
 void clean_state() {
   printf("[info] shutting down...\n");
 
-  close(state.fd);
-
   da_free_destroy(state.pages, &free);
   da_free_destroy(state.routes, &free);
+
+  clean_net();
 }
 
-void setup_socket(const char* host, const char* port) {
-  struct addrinfo* addr;
-  int ec = getaddrinfo(host, port, NULL, &addr);
-  if (ec) {
-    fprintf(stderr, "getaddrinfo(%d): %s\n", ec, gai_strerror(ec));
-    exit(1);
-  }
-
-  printf("[info] starting socket %s\n", port);
-  state.fd = socket(addr->ai_family, addr->ai_socktype, addr->ai_protocol);
-  if (state.fd < 0) handle_errno(1);
-
-  printf("[info] binding socket...\n");
-  ec = bind(state.fd, addr->ai_addr, addr->ai_addrlen);
-  if (ec < 0) handle_errno(1);
-
-  printf("[info] listening...\n");
-  listen(state.fd, 10);
-
-  freeaddrinfo(addr);
-}
-
-void handle_connection(int conn) {
-    const char msg[] =
-      "HTTP/1.1 200 OK\n"
-      "Content-Type: text/html, charset=utf-8\n"
-      "Content-Length: 22\n"
-      "\n"
-      "<h1>Hello World!</h1>\n";
-
-    int n = send(conn, msg, sizeof(msg), 0);
-    printf("[info] sent %d bytes\n", n);
-
-    close(conn);
-}
-
-void server(const char* host, const char* port) {
-  init_state();
-
-  scan_pages();
-  setup_socket(host, port);
-
-  while (true) {
-    struct sockaddr_in addr;
-    socklen_t addrlen;
-    int conn = accept(state.fd, (struct sockaddr*) &addr, &addrlen);
-    handle_connection(conn);
-  }
+void server() {
+  setup_state();
+  while (true) accept_conn();
 }

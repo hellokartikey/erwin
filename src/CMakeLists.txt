@@ -1,1 +1,1 @@
-target_sources(erwin PRIVATE error.c server.c)
+target_sources(erwin PRIVATE error.c server.c net.c)
