@@ -2,12 +2,12 @@
 
 #include "server.h"
 
-#define PORT 8000
+#define PORT "8000"
 #define HOST "localhost"
 
 int main()
 {
-  printf("[info] starting server on port %d...\n", PORT);
+  printf("[info] starting server on port %s...\n", PORT);
   server(HOST, PORT);
 
   return 0;

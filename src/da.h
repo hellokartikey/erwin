@@ -8,19 +8,19 @@
 typedef struct {
   usize_t cap;
   usize_t size;
-} da_head_t;
+} da_t;
 
 #define da_init(da)                                                            \
 do {                                                                           \
   if ((da) == NULL) {                                                          \
-    da_head_t* head = (da_head_t*) malloc(sizeof(da_head_t));                  \
+    da_t* head = (da_t*) malloc(sizeof(da_t));                                 \
     head->cap = 0;                                                             \
     head->size = 0;                                                            \
     (da) = (void*) (head + 1);                                                 \
   }                                                                            \
 } while(0)
 
-#define da_head(da) ((da_head_t*) (da) - 1)
+#define da_head(da) ((da_t*) (da) - 1)
 
 #define da_size(da) da_head((da))->size
 
@@ -29,11 +29,11 @@ do {                                                                           \
 #define da_push(da, item)                                                      \
 do {                                                                           \
   if ((da) == NULL) da_init((da));                                             \
-  da_head_t* head = da_head((da));                                             \
+  da_t* head = da_head((da));                                                  \
   if (head->size == head->cap) {                                               \
     if (head->cap == 0) head->cap = 1;                                         \
     else head->cap *= 2;                                                       \
-    head = realloc(head, sizeof(da_head_t) + (head->cap * sizeof(item)));      \
+    head = realloc(head, sizeof(da_t) + (head->cap * sizeof(item)));           \
     (da) = (void*) (head + 1);                                                 \
   }                                                                            \
   (da)[head->size++] = (item);                                                 \
