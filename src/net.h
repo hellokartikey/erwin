@@ -12,6 +12,6 @@ void setup_net(uint16_t port);
 void clean_net();
 
 void accept_conn();
-void handle_conn(int conn);
+int handle_conn(int conn);
 
 #endif
