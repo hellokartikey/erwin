@@ -10,41 +10,45 @@ typedef struct {
   usize_t size;
 } da_t;
 
-#define da_init(da)                                                            \
+#define da(d)                                                                  \
 do {                                                                           \
-  if ((da) == NULL) {                                                          \
+  if ((d) == NULL) {                                                           \
     da_t* head = (da_t*) malloc(sizeof(da_t));                                 \
     head->cap = 0;                                                             \
     head->size = 0;                                                            \
-    (da) = (void*) (head + 1);                                                 \
+    (d) = (void*) (head + 1);                                                  \
   }                                                                            \
 } while(0)
 
-#define da_head(da) ((da_t*) (da) - 1)
+#define dahead(da) ((da_t*) (da) - 1)
 
-#define da_size(da) da_head((da))->size
+#define dalen(da) dahead((da))->size
 
-#define da_capacity(da) da_head((da))->cap
+#define dacap(da) dahead((da))->cap
 
-#define da_push(da, item)                                                      \
+#define dapush(d, item)                                                        \
 do {                                                                           \
-  if ((da) == NULL) da_init((da));                                             \
-  da_t* head = da_head((da));                                                  \
+  if ((d) == NULL) da((d));                                                    \
+  da_t* head = dahead((d));                                                    \
   if (head->size == head->cap) {                                               \
     if (head->cap == 0) head->cap = 1;                                         \
     else head->cap *= 2;                                                       \
     head = realloc(head, sizeof(da_t) + (head->cap * sizeof(item)));           \
-    (da) = (void*) (head + 1);                                                 \
+    (d) = (void*) (head + 1);                                                  \
   }                                                                            \
-  (da)[head->size++] = (item);                                                 \
+  (d)[head->size++] = (item);                                                  \
 } while(0)
 
-#define da_free(da) free(da_head((da)))
-
-#define da_free_destroy(da, dtor)                                              \
+#define dafree(da)                                                             \
 do {                                                                           \
-  for (size_t i = 0; i < da_size((da)); i++) (dtor)((da)[i]);                  \
-  da_free((da));                                                               \
+  free(dahead((da)));                                                          \
+  (da) = NULL;                                                                 \
+} while(0)
+
+#define dafreedtor(da, dtor)                                                   \
+do {                                                                           \
+  for (size_t i = 0; i < dalen((da)); i++) (dtor)((da)[i]);                    \
+  dafree((da));                                                                \
 } while (0)
 
 #endif

@@ -3,20 +3,18 @@
 
 #include <stdnoreturn.h>
 
-#define PORT 8080
+#include "sv.h"
 
-typedef struct {
-  char** pages;
-  char** routes;
-} server_t;
+#define PORT 6971
 
-void setup_state();
-void clean_state();
+typedef enum {
+  TYPE_REG,
+  TYPE_DIR,
+  TYPE_IDK
+} route_t;
 
-void scan_pages();
-
+route_t type(const sv_t* route);
+noreturn void handler(int signal);
 noreturn void server();
-
-void handle_SIGINT(int signal);
 
 #endif

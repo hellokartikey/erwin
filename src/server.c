@@ -1,8 +1,8 @@
 #include "server.h"
 
 #include <stdio.h>
-#include <string.h>
 #include <stdbool.h>
+#include <stdlib.h>
 #include <signal.h>
 
 #include <dirent.h>
@@ -11,64 +11,29 @@
 
 #include <sys/stat.h>
 
-#include "da.h"
-#include "error.h"
 #include "net.h"
 
-static server_t state;
+route_t type(const sv_t* route) {
+  struct stat info;
 
-void scan_pages() {
-  DIR* fd = opendir(".");
-  if (fd == NULL) handle_errno(1);
+  char* name = svdup(route);
+  if (stat(name, &info)) return TYPE_IDK;
+  free(name);
 
-  struct dirent* file;
-  while ( (file = readdir(fd)) ) {
-    if (file->d_name[0] == '.') continue;
+  if (S_ISREG(info.st_mode)) { return TYPE_REG; }
+  if (S_ISDIR(info.st_mode)) { return TYPE_DIR; }
 
-    struct stat info;
-    if (stat(file->d_name, &info)) handle_errno(1);
-
-    if (S_ISREG(info.st_mode)) { da_push(state.pages, strdup(file->d_name)); }
-    if (S_ISDIR(info.st_mode)) { da_push(state.routes, strdup(file->d_name)); }
-  }
-
-  for (size_t i = 0; i < da_size(state.routes); i++) {
-    printf("[info] scanned route %s/\n", state.routes[i]);
-  }
-
-  for (size_t i = 0; i < da_size(state.pages); i++) {
-    printf("[info] scanned file %s\n", state.pages[i]);
-  }
-
-  closedir(fd);
+  return TYPE_IDK;
 }
 
-void handle_SIGINT(int signal) {
-  clean_state();
+void handler(int signal) {
+  printf("[info] shutting down...\n");
+  clean_net();
   exit(0);
 }
 
-void setup_state() {
-  state.pages = NULL;
-  state.routes = NULL;
-
-  signal(SIGINT, &handle_SIGINT);
-
-  scan_pages();
-
-  setup_net(PORT);
-}
-
-void clean_state() {
-  printf("[info] shutting down...\n");
-
-  da_free_destroy(state.pages, &free);
-  da_free_destroy(state.routes, &free);
-
-  clean_net();
-}
-
 void server() {
-  setup_state();
+  signal(SIGINT, &handler);
+  setup_net(PORT);
   while (true) accept_conn();
 }

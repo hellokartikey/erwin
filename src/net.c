@@ -1,7 +1,6 @@
 #include "net.h"
 
 #include <stdio.h>
-#include <stdlib.h>
 #include <unistd.h>
 
 #include <sys/socket.h>
@@ -9,6 +8,7 @@
 
 #include "error.h"
 #include "sv.h"
+#include "server.h"
 #include "http.h"
 
 static net_t net;
@@ -37,7 +37,7 @@ void setup_net(uint16_t port) {
 }
 
 void clean_net() {
-  printf("[info] closing socket %us...\n", net.port);
+  printf("[info] closing socket %u...\n", net.port);
   close(net.fd);
 }
 
@@ -55,31 +55,17 @@ int handle_conn(int conn) {
   int n = recv(conn, reqbuff, 1024, 0);
   sv_t sv = svn(reqbuff, n);
 
-  sv_t method = svnextw(&sv);
-  sv_t route = svnextw(&sv);
-  sv_t path = svtok(&route, '?');
-  printf("[info] "SV_FMT" request on "SV_FMT"\n", SV_ARG(method), SV_ARG(path));
+  http_t req = parse(&sv);
+  const char* METHOD = req.method == HTTP_GET ? "GET" : "IDK";
+  printf("[info] %s "SV_FMT"\n", METHOD, SV_ARG(req.path));
+  if (req.method != HTTP_GET) return send_405(conn);
 
-  const sv_t GET = svlit("GET");
-  if (svcmp(&method, &GET)) return send_405(conn);
-
-  svtok(&path, '/');
-  char* filename = svdup(&path);
-  FILE* file = fopen(filename, "r");
-  free(filename);
-  if (file == NULL) return send_404(conn);
-
-  fseek(file, 0, SEEK_END);
-  usize_t sz = ftell(file);
-  fseek(file, 0, SEEK_SET);
-
-  char* filebuff = malloc(sz);
-  fread(filebuff, sz, sz, file);
-  fclose(file);
-
-  sv_t html = svn(filebuff, sz);
-  n = send_200_file(conn, &html);
-  free(filebuff);
-
-  return n;
+  switch (type(&req.path)) {
+  case TYPE_REG:
+    return send_200_file(conn, &req.path);
+  case TYPE_DIR:
+    return send_200_dir(conn, &req.path);
+  default:
+    return send_404(conn);
+  }
 }
