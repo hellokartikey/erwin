@@ -32,8 +32,8 @@ void handler(int signal) {
   exit(0);
 }
 
-void server() {
+void server(port_t port) {
   signal(SIGINT, &handler);
-  setup_net(PORT);
+  setup_net(port);
   while (true) accept_conn();
 }

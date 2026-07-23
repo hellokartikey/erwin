@@ -8,4 +8,5 @@
 void handle_errno(int code) {
   fprintf(stderr, "errno(%d): %s\n", errno, strerror(errno));
   raise(SIGINT);
+  while (1);
 }
